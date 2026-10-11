@@ -2,6 +2,7 @@
 module Scheduler
   ( Scheduler(..)
   , Schedule(..)
+  , module Data.Time
   , initScheduler
   , closeScheduler
   , nextJobTime
@@ -89,9 +90,10 @@ closeScheduler s = do
   c <- takeMVar (schedDB s)
   SQL.close c
 
+-- TODO: better validation
 validateSchedule :: Schedule -> Either T.Text Schedule
 validateSchedule s = case s of
-  Every d         | d <= 0              -> Left "Tried to schedule a job to happen every r seconds, where r <= 0."
+  Every d         | d < 1             -> Left "Tried to schedule a job to happen every r seconds, where r < 1."
   Monthly dom _   | dom < 1 || dom > 31 -> Left "Tried to schedule a monthly job on a day that never exists in any month."
   Yearly m dom _  | dom < 1 || dom > 31 || m < 1 || m > 12 -> Left "Tried to schedule a yearly job on a month or day that never exists."
   NthWeekday m _ n _   | m < 1 || m > 12 || n > 5 || n < -5 || n == 0 -> Left "Tried to schedule a job on the nth <day of week> of <month> each year, but the inputs given result in a date that never occurs."
@@ -156,7 +158,7 @@ getDueJobs :: FromJSON a => Scheduler a -> UTCTime -> IO [a]
 getDueJobs scheduler now = withDB (schedDB scheduler) $
   \conn -> SQL.withTransaction conn $ do
     rs <- SQL.query conn
-      "SELECT (id, schedule, action) FROM scheduled_jobs WHERE fire_at <= ?"
+      "SELECT id, schedule, action FROM scheduled_jobs WHERE fire_at <= ?"
       [utcToInt now]
     fmap catRights . forM rs $ \(jid, schedJSON, actJSON) -> do
       let s = decodeJSON schedJSON
