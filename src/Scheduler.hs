@@ -1,5 +1,13 @@
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass, OverloadedStrings #-}
-module Scheduler where
+module Scheduler
+  ( Scheduler(..)
+  , Schedule(..)
+  , initScheduler
+  , closeScheduler
+  , nextJobTime
+  , scheduleJob
+  , runScheduler
+  ) where
 
 import Scheduler.Bell (Bell, await, ring, newBell)
 
@@ -12,7 +20,6 @@ import Data.Aeson (ToJSON, FromJSON, eitherDecodeStrictText, encode)
 import GHC.Generics (Generic)
 import Control.Concurrent.MVar (MVar, withMVar, newMVar, takeMVar)
 import Data.Time
-import Data.Time.Clock (nominalDiffTimeToSeconds, secondsToNominalDiffTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds, posixSecondsToUTCTime)
 import Data.Int (Int64)
 import Control.Monad (forM, forM_, forever, void)
